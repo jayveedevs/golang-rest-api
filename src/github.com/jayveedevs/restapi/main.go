@@ -13,7 +13,8 @@ import (
 func enableCors(w *http.ResponseWriter) {
 	(*w).Header().Set("Access-Control-Allow-Origin", "*")
 	(*w).Header().Set("Access-Control-Allow-Credentials", "true")
-	(*w).Header().Set("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,PATCH,OPTIONS")
+	(*w).Header().Set("Access-Control-Allow-Methods", "GET,HEAD,PUT,POST,DELETE,OPTIONS")
+	(*w).Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization")
 }
 
 // User Struct (Model)
@@ -82,13 +83,13 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 
 	err = db.QueryRow("SELECT UserID, FirstName, LastName, Address, BirthDate, Gender FROM users where UserID = ?", params["id"]).Scan(&user.ID, &user.FirstName, &user.LastName, &user.Address, &user.BirthDate, &user.Gender)
 
-	users = append(users, User{ID: user.ID, FirstName: user.FirstName, LastName: user.LastName, Address: user.Address, BirthDate: user.BirthDate, Gender: user.Gender})
+	// users = append(users, User{ID: user.ID, FirstName: user.FirstName, LastName: user.LastName, Address: user.Address, BirthDate: user.BirthDate, Gender: user.Gender})
 
 	if err != nil {
 		panic(err.Error())
 	}
 
-	json.NewEncoder(w).Encode(users)
+	json.NewEncoder(w).Encode(user)
 }
 
 func createUser(w http.ResponseWriter, r *http.Request) {
@@ -118,6 +119,7 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 func updateUser(w http.ResponseWriter, r *http.Request) {
 
 	enableCors(&w)
+
 	w.Header().Set("Content-Type", "application/json")
 
 	params := mux.Vars(r)
@@ -132,18 +134,20 @@ func updateUser(w http.ResponseWriter, r *http.Request) {
 	var user User
 	_ = json.NewDecoder(r.Body).Decode(&user)
 
-	insert, err := db.Query("UPDATE users SET FirstName='" + user.FirstName + "',LastName='" + user.LastName + "',Address='" + user.Address + "',BirthDate='" + user.BirthDate + "',Gender='" + user.Gender + "' WHERE UserID=" + params["id"])
+	update, err := db.Query("UPDATE users SET FirstName='" + user.FirstName + "',LastName='" + user.LastName + "',Address='" + user.Address + "',BirthDate='" + user.BirthDate + "',Gender='" + user.Gender + "' WHERE UserID=" + params["id"])
 
 	if err != nil {
 		panic(err.Error())
 	}
 
-	defer insert.Close()
+	defer update.Close()
 
 }
 
 func deletUser(w http.ResponseWriter, r *http.Request) {
+
 	enableCors(&w)
+
 	w.Header().Set("Content-Type", "application/json")
 
 	params := mux.Vars(r)
@@ -157,13 +161,13 @@ func deletUser(w http.ResponseWriter, r *http.Request) {
 	var user User
 	_ = json.NewDecoder(r.Body).Decode(&user)
 
-	insert, err := db.Query("DELETE FROM users WHERE UserID=" + params["id"])
+	delete, err := db.Query("DELETE FROM users WHERE UserID=" + params["id"])
 
 	if err != nil {
 		panic(err.Error())
 	}
 
-	defer insert.Close()
+	defer delete.Close()
 }
 
 func main() {
