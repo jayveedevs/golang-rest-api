@@ -12,6 +12,8 @@ import (
 
 func enableCors(w *http.ResponseWriter) {
 	(*w).Header().Set("Access-Control-Allow-Origin", "*")
+	(*w).Header().Set("Access-Control-Allow-Credentials", "true")
+	(*w).Header().Set("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,PATCH,OPTIONS")
 }
 
 // User Struct (Model)
@@ -24,7 +26,11 @@ type User struct {
 	Gender    string `json:"gender"`
 }
 
+var users []User
+
 func getUsers(w http.ResponseWriter, r *http.Request) {
+
+	users = nil
 
 	enableCors(&w)
 	w.Header().Set("Content-Type", "application/json")
@@ -48,12 +54,17 @@ func getUsers(w http.ResponseWriter, r *http.Request) {
 			panic(err.Error())
 		}
 
-		json.NewEncoder(w).Encode(user)
+		users = append(users, User{ID: user.ID, FirstName: user.FirstName, LastName: user.LastName, Address: user.Address, BirthDate: user.BirthDate, Gender: user.Gender})
+
 	}
+
+	json.NewEncoder(w).Encode(users)
 
 }
 
 func getUser(w http.ResponseWriter, r *http.Request) {
+
+	users = nil
 
 	enableCors(&w)
 	w.Header().Set("Content-Type", "application/json")
@@ -70,11 +81,14 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 	var user User
 
 	err = db.QueryRow("SELECT UserID, FirstName, LastName, Address, BirthDate, Gender FROM users where UserID = ?", params["id"]).Scan(&user.ID, &user.FirstName, &user.LastName, &user.Address, &user.BirthDate, &user.Gender)
+
+	users = append(users, User{ID: user.ID, FirstName: user.FirstName, LastName: user.LastName, Address: user.Address, BirthDate: user.BirthDate, Gender: user.Gender})
+
 	if err != nil {
 		panic(err.Error())
 	}
 
-	json.NewEncoder(w).Encode(user)
+	json.NewEncoder(w).Encode(users)
 }
 
 func createUser(w http.ResponseWriter, r *http.Request) {
@@ -157,8 +171,8 @@ func main() {
 
 	router.HandleFunc("/api/users", getUsers).Methods("GET")
 	router.HandleFunc("/api/users/{id}", getUser).Methods("GET")
-	router.HandleFunc("/api/users", createUser).Methods("POST")
-	router.HandleFunc("/api/users/{id}", updateUser).Methods("PUT")
-	router.HandleFunc("/api/users/{id}", deletUser).Methods("DELETE")
+	router.HandleFunc("/api/users", createUser).Methods("POST", "OPTIONS")
+	router.HandleFunc("/api/users/{id}", updateUser).Methods("PUT", "OPTIONS")
+	router.HandleFunc("/api/users/{id}", deletUser).Methods("DELETE", "OPTIONS")
 	log.Fatal(http.ListenAndServe(":8082", router))
 }
